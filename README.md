@@ -22,7 +22,7 @@ yarn add @splitmedialabs/pubsub-queue
 
 ### Publishing jobs
 
-```lang=js
+```javascript
 const PubsubQueue = require('@splitmedialabs/pubsub-queue');
 
 const Pubsub = new PubsubQueue({
@@ -61,7 +61,7 @@ Pubsub.Publisher.publish({
 
 ### Workers
 
-```lang=js
+```javascript
 // # handlers/hello.js
 module.exports = new class Hello {
   async work(payload) {
@@ -107,7 +107,7 @@ Pubsub.Worker.start(handlers);
 
 This is useful for statistics
 
-```lang=js
+```javascript
 const handlers = {}
 
 Pubsub.Worker.on('job.reserved', data => console.log(data)) // when a job is starting
