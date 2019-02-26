@@ -115,6 +115,7 @@ class PubsubWorker extends EventEmitter {
         delayed,
         retries,
         payload: data,
+        error: err,
       });
     }
   }

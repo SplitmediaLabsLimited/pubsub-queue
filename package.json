@@ -14,5 +14,22 @@
     "eslint-plugin-prettier": "^3.0.1",
     "nodemon": "^1.18.10",
     "prettier": "^1.16.4"
-  }
+  },
+  "description": "A Google Cloud Pubsub client for node.js geared towards queues and jobs. Inspired by ceejbot/fivebeans",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SplitmediaLabsLimited/pubsub-queue.git"
+  },
+  "keywords": [
+    "queue",
+    "gcp-pubusb"
+  ],
+  "author": "Makara Sok",
+  "bugs": {
+    "url": "https://github.com/SplitmediaLabsLimited/pubsub-queue/issues"
+  },
+  "homepage": "https://github.com/SplitmediaLabsLimited/pubsub-queue#readme"
 }
