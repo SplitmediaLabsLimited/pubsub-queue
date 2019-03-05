@@ -52,11 +52,28 @@ class PubsubWorker extends EventEmitter {
         payload: data,
       });
 
-      // do the work !
-      await handler.work(data, message);
+      let extra = {};
 
-      // ack the message
-      message.ack();
+      // do the work !
+      const response = await handler.work(data, message);
+
+      if (typeof response === 'string') {
+        if (response === 'put' || response === 'retry') {
+          message.nack();
+        } else {
+          message.ack();
+        }
+      } else if (typeof response === 'object') {
+        if (response.status === 'put' || response.status === 'retry') {
+          message.nack();
+        } else {
+          message.ack();
+        }
+
+        extra = response.extra || {};
+      } else {
+        message.ack();
+      }
 
       // send an event that we're done with the job
       this.emit('job.handled', {
@@ -65,6 +82,7 @@ class PubsubWorker extends EventEmitter {
         delayed,
         retries,
         payload: data,
+        extra,
       });
     } catch (err) {
       if (retries) {
