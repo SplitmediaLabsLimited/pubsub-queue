@@ -33,13 +33,13 @@ const Pubsub = new PubsubQueue(
   },
   {
     // topics and subscriptions config
-    topicName: 'worker-test', // name of the topic for the jobs
+    topicName: 'worker-test', // name of the default topicName for the jobs
     buriedTopicName: 'worker-test-buried', // name of the buried topics. When a job fails, it'll get published here
     subscriptionName: 'test-sub', // name of the subscription under the topic
   }
 );
 
-// minimal job publishing
+// minimal job publishing. This will publish the job to the default topicName
 Pubsub.Publisher.publish({
   type: 'hello', // name of the handler
   payload: {
@@ -49,6 +49,20 @@ Pubsub.Publisher.publish({
 
 // all bells and whistle
 Pubsub.Publisher.publish({
+  type: 'hello-fail', // name of the handler
+  payload: {
+    hello: 'world delayed',
+  }, // arbitrary payload. Will be serialized to JSON
+  retries: '5', // How many times this job will be retried if it fails
+  delayed: {
+    // job will only be executed after this date
+    unit: 'seconds',
+    value: '10',
+  },
+});
+
+// custom topic
+Pubsub.Publisher.publish('custom-topic-name', {
   type: 'hello-fail', // name of the handler
   payload: {
     hello: 'world delayed',

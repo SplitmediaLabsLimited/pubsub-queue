@@ -45,7 +45,17 @@ class PubsubPublisher {
    * @param {number} job.retries.value - the number of the delay
    *
    */
-  publish(job) {
+  publish(arg1, arg2) {
+    let job;
+    let topic;
+    if (typeof arg1 === 'string' && typeof arg2 === 'object') {
+      job = arg2;
+      topic = this.client.topic(topic);
+    } else if (typeof arg1 === 'object') {
+      job = arg1;
+      topic = this.topic;
+    }
+
     const { type, payload = {}, delayed = null, retries = null } = job;
 
     const attributes = {
@@ -64,7 +74,7 @@ class PubsubPublisher {
       attributes.retries = retries;
     }
 
-    return this.topic.publish(Buffer.from(JSON.stringify(payload)), attributes);
+    return topic.publish(Buffer.from(JSON.stringify(payload)), attributes);
   }
 }
 
