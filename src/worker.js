@@ -141,9 +141,9 @@ class PubsubWorker extends EventEmitter {
   /**
    * Start the worker
    */
-  start(handlers = {}) {
+  start(handlers = {}, options = {}) {
     this.topic
-      .subscription(this.queueConfig.subscriptionName)
+      .subscription(this.queueConfig.subscriptionName, options)
       .on('message', message => this.work(handlers, message));
   }
 }
