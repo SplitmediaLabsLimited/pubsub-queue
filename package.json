@@ -1,6 +1,6 @@
 {
   "name": "@splitmedialabs/pubsub-queue",
-  "version": "1.4.0",
+  "version": "2.0.0",
   "main": "src/index.js",
   "license": "MIT",
   "dependencies": {

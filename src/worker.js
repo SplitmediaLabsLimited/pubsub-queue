@@ -1,7 +1,8 @@
 const isAfter = require('date-fns/is_after');
 const EventEmitter = require('events');
-
 const Publisher = require('./publisher');
+const sleep = require('./sleep');
+const getRetries = require('./getRetries');
 
 class PubsubWorker extends EventEmitter {
   constructor(client, queueConfig) {
@@ -23,7 +24,7 @@ class PubsubWorker extends EventEmitter {
     const data = JSON.parse(dataString);
 
     // extract relevant attributes
-    const { type, delayed, retries } = message.attributes;
+    const { type, delayed } = message.attributes;
 
     // check for delayed
     if (delayed) {
@@ -36,6 +37,8 @@ class PubsubWorker extends EventEmitter {
 
     // get the handler
     const handler = handlers[type];
+
+    const retries = getRetries(message.attributes.retries, handler.retries);
 
     // no handler for this type, crash!
     if (!handler) {
@@ -85,19 +88,23 @@ class PubsubWorker extends EventEmitter {
         extra,
       });
     } catch (err) {
-      if (retries) {
+      let retryCount = 0;
+
+      if (retries.count > 0) {
         let success = false;
 
-        retryloop: for (let i = 1; i <= retries; i++) {
+        retryloop: for (let i = 1; i <= retries.count; i++) {
           try {
             if (success === false) {
+              retryCount = i;
+              await sleep(retries.delay);
               await handler.work(data, message);
               message.ack();
               success = true;
               break retryloop;
             }
           } catch (err) {
-            console.log(`retry #${i}`);
+            console.log(`try #${i} failed`);
           }
         }
 
@@ -108,6 +115,7 @@ class PubsubWorker extends EventEmitter {
             delayed,
             retries,
             retried: true,
+            retryCount,
             payload: data,
           });
           message.ack();
@@ -121,8 +129,6 @@ class PubsubWorker extends EventEmitter {
       // republish in the buried tube
       this.buriedPublisher.publish({
         type,
-        delayed,
-        retries,
         payload: data,
       });
 
@@ -132,6 +138,7 @@ class PubsubWorker extends EventEmitter {
         type,
         delayed,
         retries,
+        retryCount,
         payload: data,
         error: err,
       });

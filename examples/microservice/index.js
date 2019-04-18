@@ -23,7 +23,6 @@ Pubsub.Publisher.publish({
   payload: {
     hello: 'world delayed',
   }, // arbitrary payload. Will be serialized to JSON
-  retries: '5', // How many times this job will be retried if it fails
   delayed: {
     // job will only be executed after this date
     unit: 'seconds',

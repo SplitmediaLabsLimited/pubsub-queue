@@ -53,7 +53,6 @@ Pubsub.Publisher.publish({
   payload: {
     hello: 'world delayed',
   }, // arbitrary payload. Will be serialized to JSON
-  retries: '5', // How many times this job will be retried if it fails
   delayed: {
     // job will only be executed after this date
     unit: 'seconds',
@@ -67,12 +66,8 @@ Pubsub.Publisher.publish('custom-topic-name', {
   payload: {
     hello: 'world delayed',
   }, // arbitrary payload. Will be serialized to JSON
-  retries: '5', // How many times this job will be retried if it fails
-  delayed: {
-    // job will only be executed after this date
-    unit: 'seconds',
-    value: '10',
-  },
+  // will only sttart after this date
+  delayed: new Date(new Date().getTime() + 10000).toISOString(),
 });
 ```
 
@@ -80,31 +75,35 @@ Pubsub.Publisher.publish('custom-topic-name', {
 
 ```javascript
 // # handlers/hello.js
-module.exports = new class Hello {
+module.exports = {
   async work(payload) {
     console.log('job-handler', { payload });
 
     return; // any return means success
-  }
-}();
+  },
+};
 
 // # handlers/hello-repeat.js
-module.exports = new class Hello {
+module.exports = {
   async work(payload) {
     console.log('job-handler', { payload });
 
     return 'put'; // the job will be succesful but will be put back on the queue
-  }
-}();
+  },
+};
 
 // # handlers/hello-fail.js
-module.exports = new class HelloFail {
+module.exports = {
+  retries: {
+    count: 5, // how many times to retry this job
+    delay: 1000, // delay between each retries
+  },
   async work(payload) {
     console.log('job-handler', { payload });
 
     throw new Error('Fake Error!'); // throwing will fail the job
-  }
-}();
+  },
+};
 
 // # index.js
 const PubsubQueue = require('@splitmedialabs/pubsub-queue');
