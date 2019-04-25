@@ -38,12 +38,12 @@ class PubsubWorker extends EventEmitter {
     // get the handler
     const handler = handlers[type];
 
-    const retries = getRetries(message.attributes.retries, handler.retries);
-
     // no handler for this type, crash!
     if (!handler) {
       throw new Error(`No handlers for type "${type}"`);
     }
+
+    const retries = getRetries(message.attributes.retries, handler.retries);
 
     try {
       // send event that we've picked up a job
