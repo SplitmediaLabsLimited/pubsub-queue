@@ -9,24 +9,42 @@ class PubsubQueue {
    * @param {Object} queueConfig
    * @param {string} queueConfig.topicName - the topic name to listen / publish to
    * @param {string} queueConfig.subscriptionName - the subscription name for the worker
+   * @param {string} queueConfig.buriedTopicName - the buried topic, where it sends buried messages to
+   *
    *
    */
   constructor(GCloudConfiguration = {}, queueConfig = {}) {
     this.connectionConfig = GCloudConfiguration;
     this.queueConfig = queueConfig;
-    this.client = new PubSub(this.connectionConfig);
-    this.publisher = new PubsubPublisher(
-      this.client,
-      this.queueConfig.topicName
-    );
-    this.worker = new PubsubWorker(this.client, this.queueConfig);
+    this._client = null;
+    this.publisher = null;
+    this.worker = null;
+  }
+
+  client() {
+    if (!this._client) {
+      this._client = new PubSub(this.connectionConfig);
+    }
+
+    return this._client;
   }
 
   get Publisher() {
+    const client = this.client();
+
+    if (!this.publisher) {
+      this.publisher = new PubsubPublisher(client, this.queueConfig.topicName);
+    }
+
     return this.publisher;
   }
 
   get Worker() {
+    const client = this.client();
+
+    if (!this.worker) {
+      this.worker = new PubsubWorker(client, this.queueConfig);
+    }
     return this.worker;
   }
 }
