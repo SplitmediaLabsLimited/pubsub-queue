@@ -4,6 +4,14 @@ const Publisher = require('./publisher');
 const sleep = require('./sleep');
 const getRetries = require('./getRetries');
 
+function safeJSONParse(val) {
+  try {
+    return JSON.parse(val);
+  } catch (err) {
+    return val;
+  }
+}
+
 class PubsubWorker extends EventEmitter {
   constructor(client, queueConfig) {
     super();
@@ -21,7 +29,7 @@ class PubsubWorker extends EventEmitter {
   async work(handlers, message) {
     // parse data payload
     const dataString = message.data.toString('utf8');
-    const data = JSON.parse(dataString);
+    const data = safeJSONParse(dataString);
 
     // extract relevant attributes
     const { type, delayed } = message.attributes;
