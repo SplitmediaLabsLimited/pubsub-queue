@@ -24,6 +24,8 @@ class PubsubWorker extends EventEmitter {
       this.client,
       queueConfig.buriedTopicName
     );
+
+    this.ackOnStart = Boolean(queueConfig.workerAckOnStart);
   }
 
   async work(handlers, message) {
@@ -53,6 +55,10 @@ class PubsubWorker extends EventEmitter {
     const dataString = message.data.toString('utf8');
     const data = safeJSONParse(dataString);
 
+    if (this.ackOnStart) {
+      message.ack();
+    }
+
     try {
       // send event that we've picked up a job
       this.emit('job.reserved', {
@@ -63,28 +69,7 @@ class PubsubWorker extends EventEmitter {
         payload: data,
       });
 
-      let extra = {};
-
-      // do the work !
-      const response = await handler.work(data, message);
-
-      if (typeof response === 'string') {
-        if (response === 'put' || response === 'retry') {
-          message.nack();
-        } else {
-          message.ack();
-        }
-      } else if (typeof response === 'object') {
-        if (response.status === 'put' || response.status === 'retry') {
-          message.nack();
-        } else {
-          message.ack();
-        }
-
-        extra = response.extra || {};
-      } else {
-        message.ack();
-      }
+      let extra = await this.runHandler(handler, data, message);
 
       // send an event that we're done with the job
       this.emit('job.handled', {
@@ -100,14 +85,14 @@ class PubsubWorker extends EventEmitter {
 
       if (retries.count > 0) {
         let success = false;
+        let extra = {};
 
         retryloop: for (let i = 1; i <= retries.count; i++) {
           try {
             if (success === false) {
               retryCount = i;
               await sleep(retries.delay);
-              await handler.work(data, message);
-              message.ack();
+              extra = await this.runHandler(handler, data, message);
               success = true;
               break retryloop;
             }
@@ -125,14 +110,16 @@ class PubsubWorker extends EventEmitter {
             retried: true,
             retryCount,
             payload: data,
+            extra,
           });
-          message.ack();
           return;
         }
       }
 
       // can only reach this code path here if there's no retries, or if the retry failed
-      message.ack();
+      if (!this.ackOnStart) {
+        message.ack();
+      }
 
       // republish in the buried tube
       this.buriedPublisher.publish({
@@ -150,6 +137,39 @@ class PubsubWorker extends EventEmitter {
         payload: data,
         error: err,
       });
+    }
+  }
+
+  async runHandler(handler, data, message) {
+    let extra = {};
+
+    // do the work !
+    const response = await handler.work(data, message);
+
+    if (typeof response === 'string') {
+      this.handleRetry(response, message);
+    } else if (typeof response === 'object') {
+      this.handleRetry(response.status, message);
+
+      extra = response.extra || {};
+    } else if (!this.ackOnStart) {
+      message.ack();
+    }
+
+    return extra;
+  }
+
+  handleRetry(status, message) {
+    const retry = status === 'put' || status === 'retry';
+
+    if (this.ackOnStart) {
+      if (retry) {
+        this.topic.publish(message.data, message.attributes);
+      }
+    } else if (retry) {
+      message.nack();
+    } else {
+      message.ack();
     }
   }
 
