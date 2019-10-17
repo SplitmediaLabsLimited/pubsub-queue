@@ -77,7 +77,13 @@ class PubsubWorker extends EventEmitter {
         payload: data,
       });
 
-      let extra = await this.runHandler(handler, data, message, ackOnStart);
+      let extra = await this.runHandler(
+        handler,
+        data,
+        message,
+        ackOnStart,
+        delayed
+      );
 
       // send an event that we're done with the job
       this.emit('job.handled', {
@@ -100,7 +106,13 @@ class PubsubWorker extends EventEmitter {
             if (success === false) {
               retryCount = i;
               await sleep(retries.delay);
-              extra = await this.runHandler(handler, data, message, ackOnStart);
+              extra = await this.runHandler(
+                handler,
+                data,
+                message,
+                ackOnStart,
+                delayed
+              );
               success = true;
               break retryloop;
             }
@@ -148,16 +160,16 @@ class PubsubWorker extends EventEmitter {
     }
   }
 
-  async runHandler(handler, data, message, ackOnStart) {
+  async runHandler(handler, data, message, ackOnStart, delayed) {
     let extra = {};
 
     // do the work !
     const response = await handler.work(data, message);
 
     if (typeof response === 'string') {
-      this.handleRetry(response, message, ackOnStart);
+      this.handleRetry(response, message, ackOnStart, delayed);
     } else if (typeof response === 'object') {
-      this.handleRetry(response.status, message, ackOnStart);
+      this.handleRetry(response.status, message, ackOnStart, delayed);
 
       extra = response.extra || {};
     } else if (!ackOnStart) {
@@ -167,11 +179,17 @@ class PubsubWorker extends EventEmitter {
     return extra;
   }
 
-  handleRetry(status, message, ackOnStart) {
+  handleRetry(status, message, ackOnStart, delayed) {
     const retry = status === 'put' || status === 'retry';
 
     if (ackOnStart) {
       if (retry) {
+        // for consistency with message-level delayed,
+        // make sure handler-level delayed is the same across retries
+        if (delayed && message.attributes.delayed == null) {
+          message.attributes.delayed = delayed;
+        }
+
         this.topic.publish(message.data, message.attributes);
       }
     } else if (retry) {
