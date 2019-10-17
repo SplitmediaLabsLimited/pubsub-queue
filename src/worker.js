@@ -27,10 +27,6 @@ class PubsubWorker extends EventEmitter {
   }
 
   async work(handlers, message) {
-    // parse data payload
-    const dataString = message.data.toString('utf8');
-    const data = safeJSONParse(dataString);
-
     // extract relevant attributes
     const { type, delayed } = message.attributes;
 
@@ -52,6 +48,10 @@ class PubsubWorker extends EventEmitter {
     }
 
     const retries = getRetries(message.attributes.retries, handler.retries);
+
+    // parse data payload
+    const dataString = message.data.toString('utf8');
+    const data = safeJSONParse(dataString);
 
     try {
       // send event that we've picked up a job
