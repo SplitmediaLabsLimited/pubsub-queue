@@ -10,8 +10,6 @@ class PubsubQueue {
    * @param {string} queueConfig.topicName - the topic name to listen / publish to
    * @param {string} queueConfig.subscriptionName - the subscription name for the worker
    * @param {string} queueConfig.buriedTopicName - the buried topic, where it sends buried messages to
-   * @param {boolean} queueConfig.workerAckOnStart - if true, worker will ack message before calling handler, and republishes on retry; otherwise, ack on handler success, and nack on retry
-   *
    *
    */
   constructor(GCloudConfiguration = {}, queueConfig = {}) {

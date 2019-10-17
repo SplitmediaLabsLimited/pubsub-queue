@@ -2,6 +2,7 @@ const isAfter = require('date-fns/is_after');
 const EventEmitter = require('events');
 const Publisher = require('./publisher');
 const sleep = require('./sleep');
+const getDelayed = require('./getDelayed');
 const getRetries = require('./getRetries');
 
 function safeJSONParse(val) {
@@ -24,15 +25,23 @@ class PubsubWorker extends EventEmitter {
       this.client,
       queueConfig.buriedTopicName
     );
-
-    this.ackOnStart = Boolean(queueConfig.workerAckOnStart);
   }
 
   async work(handlers, message) {
-    // extract relevant attributes
-    const { type, delayed } = message.attributes;
+    // get the handler
+    const { type } = message.attributes;
+    const handler = handlers[type];
+
+    // no handler for this type, crash!
+    if (!handler) {
+      throw new Error(`No handlers for type "${type}"`);
+    }
 
     // check for delayed
+    const delayed =
+      message.attributes.delayed ||
+      getDelayed(handler.delayed, message.publishTime);
+
     if (delayed) {
       if (!isAfter(new Date(), new Date(delayed))) {
         // not ready, put it back in the queue
@@ -41,21 +50,20 @@ class PubsubWorker extends EventEmitter {
       }
     }
 
-    // get the handler
-    const handler = handlers[type];
-
-    // no handler for this type, crash!
-    if (!handler) {
-      throw new Error(`No handlers for type "${type}"`);
-    }
-
-    const retries = getRetries(message.attributes.retries, handler.retries);
+    const retries = getRetries(message.attributes.retries || handler.retries);
 
     // parse data payload
     const dataString = message.data.toString('utf8');
     const data = safeJSONParse(dataString);
 
-    if (this.ackOnStart) {
+    let ackOnStart = false;
+    if (typeof message.attributes.ackOnStart === 'boolean') {
+      ackOnStart = message.attributes.ackOnStart;
+    } else if (typeof handler.ackOnStart === 'boolean') {
+      ackOnStart = handler.ackOnStart;
+    }
+
+    if (ackOnStart) {
       message.ack();
     }
 
@@ -69,7 +77,7 @@ class PubsubWorker extends EventEmitter {
         payload: data,
       });
 
-      let extra = await this.runHandler(handler, data, message);
+      let extra = await this.runHandler(handler, data, message, ackOnStart);
 
       // send an event that we're done with the job
       this.emit('job.handled', {
@@ -92,7 +100,7 @@ class PubsubWorker extends EventEmitter {
             if (success === false) {
               retryCount = i;
               await sleep(retries.delay);
-              extra = await this.runHandler(handler, data, message);
+              extra = await this.runHandler(handler, data, message, ackOnStart);
               success = true;
               break retryloop;
             }
@@ -117,7 +125,7 @@ class PubsubWorker extends EventEmitter {
       }
 
       // can only reach this code path here if there's no retries, or if the retry failed
-      if (!this.ackOnStart) {
+      if (!ackOnStart) {
         message.ack();
       }
 
@@ -140,29 +148,29 @@ class PubsubWorker extends EventEmitter {
     }
   }
 
-  async runHandler(handler, data, message) {
+  async runHandler(handler, data, message, ackOnStart) {
     let extra = {};
 
     // do the work !
     const response = await handler.work(data, message);
 
     if (typeof response === 'string') {
-      this.handleRetry(response, message);
+      this.handleRetry(response, message, ackOnStart);
     } else if (typeof response === 'object') {
-      this.handleRetry(response.status, message);
+      this.handleRetry(response.status, message, ackOnStart);
 
       extra = response.extra || {};
-    } else if (!this.ackOnStart) {
+    } else if (!ackOnStart) {
       message.ack();
     }
 
     return extra;
   }
 
-  handleRetry(status, message) {
+  handleRetry(status, message, ackOnStart) {
     const retry = status === 'put' || status === 'retry';
 
-    if (this.ackOnStart) {
+    if (ackOnStart) {
       if (retry) {
         this.topic.publish(message.data, message.attributes);
       }
