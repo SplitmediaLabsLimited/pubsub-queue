@@ -1,32 +1,4 @@
-function delayObjectToString(delayed) {
-  let add;
-  switch (delayed.unit) {
-    case 's':
-    case 'sec':
-    case 'second':
-    case 'seconds':
-      add = require('date-fns/add_seconds');
-      break;
-    case 'm':
-    case 'min':
-    case 'minute':
-    case 'minutes':
-      add = require('date-fns/add_minutes');
-      break;
-    case 'h':
-    case 'hour':
-    case 'hours':
-      add = require('date-fns/add_hours');
-      break;
-    case 'd':
-    case 'day':
-    case 'days':
-      add = require('date-fns/add_days');
-      break;
-  }
-
-  return add(new Date(), delayed.value).toISOString();
-}
+const getDelayed = require('./getDelayed');
 
 class PubsubPublisher {
   constructor(client, topicName) {
@@ -63,11 +35,7 @@ class PubsubPublisher {
     };
 
     if (delayed) {
-      if (typeof delayed === 'string') {
-        attributes.delayed = delayed;
-      } else if (typeof delayed === 'object') {
-        attributes.delayed = delayObjectToString(delayed);
-      }
+      attributes.delayed = getDelayed(delayed);
     }
 
     if (retries) {

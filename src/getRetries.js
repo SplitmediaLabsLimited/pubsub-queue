@@ -3,31 +3,17 @@ const defaultRetries = {
   delay: 1000,
 };
 
-module.exports = function getRetries(messageRetries, handlerRetries) {
-  if (messageRetries) {
-    if (typeof messageRetries === 'object' && messageRetries.count) {
+module.exports = function getRetries(retries) {
+  if (retries) {
+    if (typeof retries === 'object' && retries.count) {
       return {
         ...defaultRetries,
-        ...messageRetries,
+        ...retries,
       };
     } else {
       return {
         ...defaultRetries,
-        count: messageRetries,
-      };
-    }
-  }
-
-  if (handlerRetries) {
-    if (typeof handlerRetries === 'object' && handlerRetries.count) {
-      return {
-        ...defaultRetries,
-        ...handlerRetries,
-      };
-    } else {
-      return {
-        ...defaultRetries,
-        count: handlerRetries,
+        count: retries,
       };
     }
   }

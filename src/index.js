@@ -11,7 +11,6 @@ class PubsubQueue {
    * @param {string} queueConfig.subscriptionName - the subscription name for the worker
    * @param {string} queueConfig.buriedTopicName - the buried topic, where it sends buried messages to
    *
-   *
    */
   constructor(GCloudConfiguration = {}, queueConfig = {}) {
     this.connectionConfig = GCloudConfiguration;

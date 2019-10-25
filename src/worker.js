@@ -2,6 +2,7 @@ const isAfter = require('date-fns/is_after');
 const EventEmitter = require('events');
 const Publisher = require('./publisher');
 const sleep = require('./sleep');
+const getDelayed = require('./getDelayed');
 const getRetries = require('./getRetries');
 
 function safeJSONParse(val) {
@@ -27,14 +28,20 @@ class PubsubWorker extends EventEmitter {
   }
 
   async work(handlers, message) {
-    // parse data payload
-    const dataString = message.data.toString('utf8');
-    const data = safeJSONParse(dataString);
+    // get the handler
+    const { type } = message.attributes;
+    const handler = handlers[type];
 
-    // extract relevant attributes
-    const { type, delayed } = message.attributes;
+    // no handler for this type, crash!
+    if (!handler) {
+      throw new Error(`No handlers for type "${type}"`);
+    }
 
     // check for delayed
+    const delayed =
+      message.attributes.delayed ||
+      getDelayed(handler.delayed, message.publishTime);
+
     if (delayed) {
       if (!isAfter(new Date(), new Date(delayed))) {
         // not ready, put it back in the queue
@@ -43,15 +50,22 @@ class PubsubWorker extends EventEmitter {
       }
     }
 
-    // get the handler
-    const handler = handlers[type];
+    const retries = getRetries(message.attributes.retries || handler.retries);
 
-    // no handler for this type, crash!
-    if (!handler) {
-      throw new Error(`No handlers for type "${type}"`);
+    // parse data payload
+    const dataString = message.data.toString('utf8');
+    const data = safeJSONParse(dataString);
+
+    let ackOnStart = false;
+    if (typeof message.attributes.ackOnStart === 'boolean') {
+      ackOnStart = message.attributes.ackOnStart;
+    } else if (typeof handler.ackOnStart === 'boolean') {
+      ackOnStart = handler.ackOnStart;
     }
 
-    const retries = getRetries(message.attributes.retries, handler.retries);
+    if (ackOnStart) {
+      message.ack();
+    }
 
     try {
       // send event that we've picked up a job
@@ -63,28 +77,13 @@ class PubsubWorker extends EventEmitter {
         payload: data,
       });
 
-      let extra = {};
-
-      // do the work !
-      const response = await handler.work(data, message);
-
-      if (typeof response === 'string') {
-        if (response === 'put' || response === 'retry') {
-          message.nack();
-        } else {
-          message.ack();
-        }
-      } else if (typeof response === 'object') {
-        if (response.status === 'put' || response.status === 'retry') {
-          message.nack();
-        } else {
-          message.ack();
-        }
-
-        extra = response.extra || {};
-      } else {
-        message.ack();
-      }
+      let extra = await this.runHandler(
+        handler,
+        data,
+        message,
+        ackOnStart,
+        delayed
+      );
 
       // send an event that we're done with the job
       this.emit('job.handled', {
@@ -100,14 +99,20 @@ class PubsubWorker extends EventEmitter {
 
       if (retries.count > 0) {
         let success = false;
+        let extra = {};
 
         retryloop: for (let i = 1; i <= retries.count; i++) {
           try {
             if (success === false) {
               retryCount = i;
               await sleep(retries.delay);
-              await handler.work(data, message);
-              message.ack();
+              extra = await this.runHandler(
+                handler,
+                data,
+                message,
+                ackOnStart,
+                delayed
+              );
               success = true;
               break retryloop;
             }
@@ -125,14 +130,16 @@ class PubsubWorker extends EventEmitter {
             retried: true,
             retryCount,
             payload: data,
+            extra,
           });
-          message.ack();
           return;
         }
       }
 
       // can only reach this code path here if there's no retries, or if the retry failed
-      message.ack();
+      if (!ackOnStart) {
+        message.ack();
+      }
 
       // republish in the buried tube
       this.buriedPublisher.publish({
@@ -150,6 +157,45 @@ class PubsubWorker extends EventEmitter {
         payload: data,
         error: err,
       });
+    }
+  }
+
+  async runHandler(handler, data, message, ackOnStart, delayed) {
+    let extra = {};
+
+    // do the work !
+    const response = await handler.work(data, message);
+
+    if (typeof response === 'string') {
+      this.handleRetry(response, message, ackOnStart, delayed);
+    } else if (typeof response === 'object') {
+      this.handleRetry(response.status, message, ackOnStart, delayed);
+
+      extra = response.extra || {};
+    } else if (!ackOnStart) {
+      message.ack();
+    }
+
+    return extra;
+  }
+
+  handleRetry(status, message, ackOnStart, delayed) {
+    const retry = status === 'put' || status === 'retry';
+
+    if (ackOnStart) {
+      if (retry) {
+        // for consistency with message-level delayed,
+        // make sure handler-level delayed is the same across retries
+        if (delayed && message.attributes.delayed == null) {
+          message.attributes.delayed = delayed;
+        }
+
+        this.topic.publish(message.data, message.attributes);
+      }
+    } else if (retry) {
+      message.nack();
+    } else {
+      message.ack();
     }
   }
 
