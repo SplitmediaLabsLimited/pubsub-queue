@@ -30,7 +30,14 @@ class PubsubWorker extends EventEmitter {
   async work(handlers, message) {
     // get the handler
     const { type } = message.attributes;
-    const handler = handlers[type];
+
+    const handler = (function() {
+      if (typeof handlers === 'function') {
+        return handlers(type);
+      }
+
+      return handlers[type];
+    })();
 
     // no handler for this type, crash!
     if (!handler) {
