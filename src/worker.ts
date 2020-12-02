@@ -1,37 +1,59 @@
-const isAfter = require('date-fns/is_after');
-const EventEmitter = require('events');
-const Publisher = require('./publisher');
-const sleep = require('./sleep');
-const getDelayed = require('./getDelayed');
-const getRetries = require('./getRetries');
+import isAfter from 'date-fns/isAfter';
+import { EventEmitter } from 'events';
+import Publisher from './publisher';
+import { sleep, safeJSONParse } from './utils';
+import getDelayed, { DelayedConfig } from './getDelayed';
+import getRetries, { RetryConfig } from './getRetries';
+import { Message, PubSub, Topic } from '@google-cloud/pubsub';
+import { JobPayload, QueueConfig } from '.';
 
-function safeJSONParse(val) {
-  try {
-    return JSON.parse(val);
-  } catch (err) {
-    return val;
-  }
-}
+type JobStatus = string | 'put' | 'retry';
 
-class PubsubWorker extends EventEmitter {
-  constructor(client, queueConfig) {
+type JobResult =
+  | JobStatus
+  | {
+      status: string;
+      extra: any;
+    };
+
+type Handler = {
+  ackOnStart?: boolean;
+  retries?: RetryConfig;
+  delayed?: DelayedConfig;
+  work: (payload: JobPayload, message: Message) => Promise<JobResult>;
+};
+
+type DynamicHandler = (type: string) => Handler;
+type Handlers = Record<string, Handler> | DynamicHandler;
+
+export default class PubsubWorker extends EventEmitter {
+  client: PubSub;
+  queueConfig: QueueConfig;
+  topic: Topic;
+  publisher: Publisher;
+  buriedPublisher?: Publisher;
+
+  constructor(client: PubSub, queueConfig: QueueConfig) {
     super();
     this.client = client;
     this.queueConfig = queueConfig;
     this.topic = this.client.topic(queueConfig.topicName);
 
     this.publisher = new Publisher(this.client, queueConfig.topicName);
-    this.buriedPublisher = new Publisher(
-      this.client,
-      queueConfig.buriedTopicName
-    );
+
+    if (queueConfig.buriedTopicName) {
+      this.buriedPublisher = new Publisher(
+        this.client,
+        queueConfig.buriedTopicName
+      );
+    }
   }
 
-  async work(handlers, message) {
+  async work(handlers: Handlers, message: Message) {
     // get the handler
     const { type } = message.attributes;
 
-    const handler = (function() {
+    const handler = (function () {
       if (typeof handlers === 'function') {
         return handlers(type);
       }
@@ -57,7 +79,11 @@ class PubsubWorker extends EventEmitter {
       }
     }
 
-    const retries = getRetries(message.attributes.retries || handler.retries);
+    const retries = getRetries(
+      message.attributes.retries
+        ? Number(message.attributes.retries)
+        : handler.retries
+    );
 
     // parse data payload
     const dataString = message.data.toString('utf8');
@@ -112,7 +138,7 @@ class PubsubWorker extends EventEmitter {
           try {
             if (success === false) {
               retryCount = i;
-              await sleep(retries.delay);
+              await sleep(retries.delay ? retries.delay : 1000);
               extra = await this.runHandler(
                 handler,
                 data,
@@ -151,11 +177,13 @@ class PubsubWorker extends EventEmitter {
         message.ack();
       }
 
-      // republish in the buried tube
-      this.buriedPublisher.publish({
-        type,
-        payload: data,
-      });
+      if (this.buriedPublisher) {
+        // republish in the buried tube
+        this.buriedPublisher.publish({
+          type,
+          payload: data,
+        });
+      }
 
       // send event that we have buried the job
       this.emit('job.buried', {
@@ -170,7 +198,13 @@ class PubsubWorker extends EventEmitter {
     }
   }
 
-  async runHandler(handler, data, message, ackOnStart, delayed) {
+  async runHandler(
+    handler: Handler,
+    data: JobPayload,
+    message: Message,
+    ackOnStart: boolean = false,
+    delayed?: string | null
+  ) {
     let extra = {};
 
     // do the work !
@@ -189,7 +223,12 @@ class PubsubWorker extends EventEmitter {
     return extra;
   }
 
-  handleRetry(status, message, ackOnStart, delayed) {
+  handleRetry(
+    status: JobStatus,
+    message: Message,
+    ackOnStart: boolean,
+    delayed?: string | null
+  ) {
     const retry = status === 'put' || status === 'retry';
 
     if (ackOnStart) {
@@ -215,8 +254,6 @@ class PubsubWorker extends EventEmitter {
   start(handlers = {}, options = {}) {
     this.topic
       .subscription(this.queueConfig.subscriptionName, options)
-      .on('message', message => this.work(handlers, message));
+      .on('message', (message: Message) => this.work(handlers, message));
   }
 }
-
-module.exports = PubsubWorker;

@@ -1,27 +1,32 @@
 {
   "name": "@splitmedialabs/pubsub-queue",
-  "version": "3.4.0",
-  "main": "src/index.js",
+  "version": "4.0.0",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
   "license": "MIT",
   "dependencies": {
-    "date-fns": "^1.30.1"
+    "date-fns": "^2.16.1"
   },
   "peerDependencies": {
-    "@google-cloud/pubsub": "^0.30.3"
+    "@google-cloud/pubsub": "^2.6.0"
   },
   "devDependencies": {
-    "@google-cloud/pubsub": "^0.30.3",
-    "babel-eslint": "^10.0.2",
-    "eslint": "^6.1.0",
-    "eslint-config-prettier": "^6.0.0",
-    "eslint-plugin-prettier": "^3.1.0",
-    "nodemon": "^1.19.1",
-    "prettier": "^1.18.2"
+    "@google-cloud/pubsub": "^2.6.0",
+    "@types/jest": "^26.0.16",
+    "babel-eslint": "^10.1.0",
+    "eslint": "^7.14.0",
+    "eslint-config-prettier": "^6.15.0",
+    "eslint-plugin-prettier": "^3.1.4",
+    "jest": "^26.6.3",
+    "prettier": "^2.2.1",
+    "ts-jest": "^26.4.4",
+    "typescript": "^4.1.2"
   },
   "description": "A Google Cloud Pubsub client for node.js geared towards queues and jobs. Inspired by ceejbot/fivebeans",
   "scripts": {
+    "build": "tsc",
     "publish": "npm publish --access public",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest"
   },
   "repository": {
     "type": "git",
