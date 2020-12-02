@@ -1,5 +1,8 @@
 // const PubsubQueue = require('@splitmedialabs/pubsub-queue');
-const PubsubQueue = require('../../src');
+// import PubsubQueue from '@splitmedialabs/pubsub-queue';
+import PubsubQueue from '../../lib';
+import { Handlers } from '../../lib/worker';
+import hello from './handlers/hello';
 
 // obviously, change all the configs here
 const Pubsub = new PubsubQueue(
@@ -26,17 +29,37 @@ Pubsub.Publisher.publish({
   delayed: {
     // job will only be executed after this date
     unit: 'seconds',
-    value: '20',
+    value: 20,
   },
 });
 
-const handlers = {
-  hello: require('./handlers/hello'),
+const handlers: Handlers = {
+  hello,
+  // can also be defined inline
+  helloworld: {
+    async work(payload) {
+      return;
+    },
+  },
 };
 
-Pubsub.Worker.on('job.handled', data =>
+/** handlers can also be a function
+ *
+ * const handlers = type => ({
+ *  async work(payload) {
+ *    // do something meaningful
+ *    return ;
+ *  }
+ * })
+ *
+ */
+
+// when a job is done
+Pubsub.Worker.on('job.handled', (data) =>
   console.log('job finished succesfully!', data)
-); // when a job is done
-Pubsub.Worker.on('job.buried', data => console.log('job failed!', data)); // when a job has failed
+);
+
+// when a job failed
+Pubsub.Worker.on('job.buried', (data) => console.log('job failed!', data)); // when a job has failed
 
 Pubsub.Worker.start(handlers);

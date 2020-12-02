@@ -4,7 +4,7 @@ import type { DelayedConfig } from './getDelayed';
 import type { RetryConfig } from './getRetries';
 import { JobPayload } from '.';
 
-type Job = {
+export type Job = {
   type: string;
   payload?: JobPayload;
   delayed?: DelayedConfig;

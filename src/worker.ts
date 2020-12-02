@@ -7,24 +7,25 @@ import getRetries, { RetryConfig } from './getRetries';
 import { Message, PubSub, Topic } from '@google-cloud/pubsub';
 import { JobPayload, QueueConfig } from '.';
 
-type JobStatus = string | 'put' | 'retry';
+export type JobStatus = string | 'put' | 'retry';
 
-type JobResult =
+export type JobResult =
+  | void
   | JobStatus
   | {
       status: string;
       extra: any;
     };
 
-type Handler = {
+export type Handler = {
   ackOnStart?: boolean;
   retries?: RetryConfig;
   delayed?: DelayedConfig;
   work: (payload: JobPayload, message: Message) => Promise<JobResult>;
 };
 
-type DynamicHandler = (type: string) => Handler;
-type Handlers = Record<string, Handler> | DynamicHandler;
+export type DynamicHandler = (type: string) => Handler;
+export type Handlers = Record<string, Handler> | DynamicHandler;
 
 export default class PubsubWorker extends EventEmitter {
   client: PubSub;

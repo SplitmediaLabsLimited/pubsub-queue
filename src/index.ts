@@ -16,8 +16,8 @@ export default class PubsubQueue {
   connectionConfig: ClientConfig;
   queueConfig: QueueConfig;
   _client?: PubSub;
-  publisher?: any;
-  worker?: any;
+  publisher?: PubsubPublisher;
+  worker?: PubsubWorker;
 
   constructor(connectionConfig: ClientConfig = {}, queueConfig: QueueConfig) {
     this.connectionConfig = connectionConfig;

@@ -23,7 +23,7 @@ yarn add @splitmedialabs/pubsub-queue
 ### Publishing jobs
 
 ```javascript
-const PubsubQueue = require('@splitmedialabs/pubsub-queue');
+import PubsubQueue from '@splitmedialabs/pubsub-queue';
 
 const Pubsub = new PubsubQueue(
   {
@@ -34,8 +34,8 @@ const Pubsub = new PubsubQueue(
   {
     // topics and subscriptions config
     topicName: 'worker-test', // name of the default topicName for the jobs
-    buriedTopicName: 'worker-test-buried', // name of the buried topics. When a job fails, it'll get published here
     subscriptionName: 'test-sub', // name of the subscription under the topic
+    buriedTopicName: 'worker-test-buried', // Optional, name of the buried topics. When a job fails, it'll get published here.
   }
 );
 
@@ -74,8 +74,8 @@ Pubsub.Publisher.publish('custom-topic-name', {
 ### Workers
 
 ```javascript
-// # handlers/hello.js
-module.exports = {
+// # handlers/hello.ts
+export default {
   async work(payload) {
     console.log('job-handler', { payload });
 
@@ -83,8 +83,8 @@ module.exports = {
   },
 };
 
-// # handlers/hello-repeat.js
-module.exports = {
+// # handlers/hello-repeat.ts
+export default {
   async work(payload) {
     console.log('job-handler', { payload });
 
@@ -92,8 +92,8 @@ module.exports = {
   },
 };
 
-// # handlers/hello-fail.js
-module.exports = {
+// # handlers/hello-fail.ts
+export default {
   retries: {
     count: 5, // how many times to retry this job
     delay: 1000, // delay between each retries
@@ -105,8 +105,8 @@ module.exports = {
   },
 };
 
-// # index.js
-const PubsubQueue = require('@splitmedialabs/pubsub-queue');
+// # index.ts
+import PubsubQueue from '@splitmedialabs/pubsub-queue';
 
 const Pubsub = new PubsubQueue(
   {
@@ -138,9 +138,9 @@ This is useful for statistics
 ```javascript
 const handlers = {};
 
-Pubsub.Worker.on('job.reserved', data => console.log(data)); // when a job is starting
-Pubsub.Worker.on('job.handled', data => console.log(data)); // when a job is done
-Pubsub.Worker.on('job.buried', data => console.log(data)); // when a job has failed
+Pubsub.Worker.on('job.reserved', (data) => console.log(data)); // when a job is starting
+Pubsub.Worker.on('job.handled', (data) => console.log(data)); // when a job is done
+Pubsub.Worker.on('job.buried', (data) => console.log(data)); // when a job has failed
 
 Pubsub.Worker.start(handlers);
 ```
