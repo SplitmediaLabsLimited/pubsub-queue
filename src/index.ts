@@ -2,6 +2,8 @@ import { ClientConfig, PubSub } from '@google-cloud/pubsub';
 import PubsubPublisher from './publisher';
 import PubsubWorker from './worker';
 
+export { PubsubWorker, PubsubPublisher };
+
 export interface JobPayload {
   [key: string]: string;
 }
@@ -15,13 +17,16 @@ export type QueueConfig = {
 export default class PubsubQueue {
   connectionConfig: ClientConfig;
   queueConfig: QueueConfig;
-  _client?: PubSub;
-  publisher?: PubsubPublisher;
-  worker?: PubsubWorker;
+  _client: PubSub | null;
+  publisher: PubsubPublisher | null;
+  worker: PubsubWorker | null;
 
   constructor(connectionConfig: ClientConfig = {}, queueConfig: QueueConfig) {
     this.connectionConfig = connectionConfig;
     this.queueConfig = queueConfig;
+    this._client = null;
+    this.publisher = null;
+    this.worker = null;
   }
 
   client() {
