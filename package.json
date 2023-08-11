@@ -1,6 +1,6 @@
 {
   "name": "@splitmedialabs/pubsub-queue",
-  "version": "5.0.0",
+  "version": "5.1.0",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "license": "MIT",
@@ -11,7 +11,7 @@
     "@google-cloud/pubsub": "^2.6.0"
   },
   "devDependencies": {
-    "@google-cloud/pubsub": "^2.6.0",
+    "@google-cloud/pubsub": "^4.0.0",
     "@types/jest": "^26.0.16",
     "babel-eslint": "^10.1.0",
     "eslint": "^7.14.0",
