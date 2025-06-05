@@ -1,11 +1,12 @@
 {
   "compilerOptions": {
-    "lib": ["es2015"],
-    "target": "es5",
+    "lib": ["es2022"],
+    "target": "es2022",
     "esModuleInterop": true,
     "module": "commonjs",
     "declaration": true,
-    "outDir": "./lib",
+    "outDir": "./dist/lib",
+    "skipLibCheck": true,
     "strict": true
   },
   "include": ["src/*.ts"],

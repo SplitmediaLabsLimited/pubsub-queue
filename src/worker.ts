@@ -128,7 +128,7 @@ export default class PubsubWorker extends EventEmitter {
         payload: data,
         extra,
       });
-    } catch (err) {
+    } catch (err: any) {
       let retryCount = 0;
 
       if (err.retry !== false && retries.count > 0) {
@@ -150,7 +150,7 @@ export default class PubsubWorker extends EventEmitter {
               success = true;
               break retryloop;
             }
-          } catch (err) {
+          } catch (err: any) {
             console.log(`try #${i} failed`);
             if (err.retry === false) {
               break retryloop;
