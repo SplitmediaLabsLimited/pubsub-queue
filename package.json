@@ -14,7 +14,12 @@
       "import": "./lib/index.js",
       "default": "./lib/index.js"
     },
-    "./*": "./lib/*"
+    "./*": {
+      "types": "./lib/*.d.ts",
+      "require": "./lib/*.js",
+      "import": "./lib/*.js",
+      "default": "./lib/*.js"
+    }
   },
   "dependencies": {
     "date-fns": "^4.1.0"
