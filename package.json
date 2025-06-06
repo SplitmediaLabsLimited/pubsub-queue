@@ -1,6 +1,6 @@
 {
   "name": "@splitmedialabs/pubsub-queue",
-  "version": "6.0.5",
+  "version": "6.0.6",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
   "license": "MIT",
@@ -35,7 +35,7 @@
   "description": "A Google Cloud Pubsub client for node.js geared towards queues and jobs. Inspired by ceejbot/fivebeans",
   "scripts": {
     "build": "tsc",
-    "prepublishOnly": "npm run build",
+    "prepublish": "npm run build",
     "test": "jest"
   },
   "repository": {
