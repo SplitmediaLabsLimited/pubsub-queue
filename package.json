@@ -1,10 +1,16 @@
 {
   "name": "@splitmedialabs/pubsub-queue",
-  "version": "6.0.2",
+  "version": "6.0.3",
   "main": "./dist/lib/index.js",
   "types": "./dist/lib/index.d.ts",
   "license": "MIT",
   "exports": {
+    ".": {
+      "types": "./dist/lib/index.d.ts",
+      "require": "./dist/lib/index.js",
+      "import": "./dist/lib/index.js",
+      "default": "./dist/lib/index.js"
+    },
     "./*": "./dist/lib/*"
   },
   "dependencies": {
