@@ -1,20 +1,20 @@
 {
   "name": "@splitmedialabs/pubsub-queue",
-  "version": "6.0.4",
-  "main": "./dist/lib/index.js",
-  "types": "./dist/lib/index.d.ts",
+  "version": "6.0.5",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
   "license": "MIT",
   "exports": {
     ".": {
-      "types": "./dist/lib/index.d.ts",
-      "require": "./dist/lib/index.js",
-      "import": "./dist/lib/index.js",
-      "default": "./dist/lib/index.js"
+      "types": "./lib/index.d.ts",
+      "require": "./lib/index.js",
+      "import": "./lib/index.js",
+      "default": "./lib/index.js"
     },
-    "./*": "./dist/lib/*"
+    "./*": "./lib/*"
   },
   "dependencies": {
-    "date-fns": "^2.16.1"
+    "date-fns": "^4.1.0"
   },
   "peerDependencies": {
     "@google-cloud/pubsub": "^5.0.0"
