@@ -1,4 +1,4 @@
-import isAfter from 'date-fns/isAfter';
+import { isAfter } from 'date-fns';
 import { EventEmitter } from 'events';
 import Publisher from './publisher';
 import { sleep, safeJSONParse } from './utils';

@@ -1,7 +1,7 @@
 // const PubsubQueue = require('@splitmedialabs/pubsub-queue');
 // import PubsubQueue from '@splitmedialabs/pubsub-queue';
-import PubsubQueue from '../lib';
-import { Handlers } from '../lib/worker';
+import PubsubQueue from '../../lib';
+import { Handlers } from '../../lib/worker';
 import hello from './handlers/hello';
 
 // obviously, change all the configs here

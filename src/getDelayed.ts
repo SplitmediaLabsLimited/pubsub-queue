@@ -1,7 +1,4 @@
-import addSeconds from 'date-fns/addSeconds';
-import addMinutes from 'date-fns/addMinutes';
-import addHours from 'date-fns/addHours';
-import addDays from 'date-fns/addDays';
+import { addSeconds, addMinutes, addHours, addDays } from 'date-fns';
 
 export type DelayedConfig = {
   unit:
