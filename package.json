@@ -1,9 +1,12 @@
 {
   "name": "@splitmedialabs/pubsub-queue",
-  "version": "6.0.8",
+  "version": "6.0.9",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
   "license": "MIT",
+  "files": [
+    "lib"
+  ],
   "exports": {
     ".": {
       "types": "./lib/index.d.ts",
